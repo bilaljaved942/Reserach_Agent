@@ -1,4 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import GEMINI_API_KEY
 from app.graph import RESEARCH_GRAPH
@@ -13,7 +17,14 @@ def health():
 
 
 @app.post("/research", response_model=ResearchResponse)
-async def research(request: ResearchRequest):
+async def research(
+    request: ResearchRequest,
+    format: Literal["json", "markdown"] = Query(
+        "json",
+        description="'json' (default, for programmatic use) or 'markdown' to get back just "
+        "the final report as readable plain text instead of an escaped JSON string.",
+    ),
+):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set")
     if not request.query.strip():
@@ -26,6 +37,13 @@ async def research(request: ResearchRequest):
     except Exception as exc:  # pragma: no cover - unexpected/non-LLM failure
         raise HTTPException(status_code=502, detail=f"Research pipeline failed: {exc}") from exc
 
+    if format == "markdown":
+        report = result.get("final_report", "")
+        warnings = result.get("warnings", [])
+        if warnings:
+            report = "> **Warnings:** " + "; ".join(warnings) + "\n\n" + report
+        return PlainTextResponse(report, media_type="text/markdown")
+
     return ResearchResponse(
         query=request.query,
         search_findings=result.get("search_findings", ""),
@@ -35,3 +53,8 @@ async def research(request: ResearchRequest):
         final_report=result.get("final_report", ""),
         warnings=result.get("warnings", []),
     )
+
+
+# Serves the simple chat-style UI in frontend/ at /ui (e.g. http://localhost:8000/ui/).
+# Mounted last so it never shadows the /health and /research routes above.
+app.mount("/ui", StaticFiles(directory="frontend", html=True), name="frontend")

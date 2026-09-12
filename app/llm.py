@@ -67,6 +67,23 @@ def _invoke_with_retry(llm, messages):
         return llm.invoke(messages)
 
 
+def _extract_text(content) -> str:
+    # Some models/providers return a plain string; others (e.g. newer Gemini models) return a
+    # list of content blocks like [{"type": "text", "text": "..."}], mirroring Anthropic's
+    # content-block format. Normalize both to plain text so callers never have to care.
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text":
+                parts.append(block.get("text", ""))
+        return "".join(parts)
+    return str(content)
+
+
 def call_llm(llm: ChatGoogleGenerativeAI, messages: list) -> str:
     """Invoke the LLM with retry/backoff/timeout/concurrency control applied.
 
@@ -83,4 +100,4 @@ def call_llm(llm: ChatGoogleGenerativeAI, messages: list) -> str:
     if usage:
         logger.info("LLM call token usage: %s", usage)
 
-    return response.content
+    return _extract_text(response.content)

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="app-header">
+      <div class="chat-column header-row">
+        <button class="icon-btn" id="reset-btn" title="New conversation" type="button">←</button>
+        <h1>Research Agent</h1>
+        <span class="icon-btn icon-btn-static" id="mode-dot" title=""></span>
+      </div>
+    </header>
+
+    <main class="messages" id="messages">
+      <div class="chat-column">
+        <div class="intro-hint" id="intro-hint">
+          Ask a research question to start a conversation.
+        </div>
+      </div>
+    </main>
+
+    <footer class="input-bar-wrap">
+      <div class="chat-column">
+        <form class="input-bar" id="query-form">
+          <span class="input-icon">📎</span>
+          <input
+            type="text"
+            id="query-input"
+            placeholder="Message"
+            autocomplete="off"
+          />
+          <button type="submit" id="submit-btn" class="send-btn" title="Send">➤</button>
+        </form>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

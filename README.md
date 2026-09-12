@@ -163,7 +163,28 @@ Tunable via env vars (see `.env.example`): `LLM_REQUEST_TIMEOUT_SECONDS`,
 usage is logged (`response.usage_metadata`) for visibility. There's no hard per-request token
 budget or caching yet — worth adding later if cost becomes a concern.
 
+## Frontend
+
+A chat-style UI lives in `frontend/` (plain HTML/CSS/JS, no build step) and is served by the
+same FastAPI app at **http://localhost:8000/ui/** once `uvicorn` is running.
+
+- Looks like a chat app: user messages as bubbles, assistant replies with an avatar + timestamp,
+  a rounded pill input bar with a send button.
+- While a request is in flight, a single typing-indicator row is shown — a blinking status line
+  (in a distinct monospace font, like a live "agent working" status) that cycles through the
+  pipeline stages, plus animated dots. It's purely cosmetic, since the backend returns the whole
+  result in one shot rather than streaming per-agent progress yet.
+- Once the response arrives, the typing indicator is removed and **only the final report** is
+  shown, rendered from Markdown — no intermediate agent findings or warnings are surfaced in the
+  UI (they're still in the API response if you need them for debugging).
+- **Demo mode by default**: `frontend/app.js` has `CONFIG.USE_MOCK_DATA = true`, which loads
+  `frontend/sample_response.json` (a saved real response) instead of calling `/research`. This
+  lets you build/preview the UI without spending Gemini quota.
+- **To go live**: set `CONFIG.USE_MOCK_DATA = false` in `frontend/app.js`. It will then call
+  `POST /research` on `CONFIG.API_BASE_URL` (defaults to `http://localhost:8000`) with the
+  real query.
+
 ## Status
 
-Backend and orchestration are wired up and endpoint-tested, now on Gemini with the reliability
-layer described above. Frontend has not been started yet — to be scoped separately.
+Backend, orchestration, and a demo-mode frontend are wired up and tested, now on Gemini with the
+reliability layer described above.
