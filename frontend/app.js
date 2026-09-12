@@ -29,6 +29,10 @@ const chatColumn = messagesEl.querySelector(".chat-column"); // where messages a
 const resetBtn = document.getElementById("reset-btn");
 const modeDot = document.getElementById("mode-dot");
 
+// Prior turns of this conversation, sent with each request so the backend can resolve
+// follow-up references ("compare that with X") — see app/history.py on the backend.
+let conversationHistory = [];
+
 modeDot.title = CONFIG.USE_MOCK_DATA
   ? "Demo mode — showing saved sample data"
   : `Live mode — calling ${CONFIG.API_BASE_URL}`;
@@ -37,6 +41,7 @@ resetBtn.addEventListener("click", () => {
   chatColumn.innerHTML = "";
   chatColumn.appendChild(introHint);
   introHint.hidden = false;
+  conversationHistory = [];
 });
 
 // ---- Main flow -----------------------------------------------------------
@@ -55,7 +60,9 @@ form.addEventListener("submit", async (event) => {
   try {
     const data = CONFIG.USE_MOCK_DATA ? await loadMockData() : await callResearchApi(query);
     typingRow.remove();
-    appendAssistantMessage(data.final_report || "_No report was generated._");
+    const answer = data.final_report || "_No report was generated._";
+    appendAssistantMessage(answer);
+    conversationHistory.push({ query, answer });
   } catch (err) {
     typingRow.remove();
     appendAssistantMessage(null, err);
@@ -145,7 +152,7 @@ async function callResearchApi(query) {
   const res = await fetch(`${CONFIG.API_BASE_URL}/research`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, history: conversationHistory }),
   });
 
   if (!res.ok) {

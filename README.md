@@ -184,6 +184,25 @@ same FastAPI app at **http://localhost:8000/ui/** once `uvicorn` is running.
   `POST /research` on `CONFIG.API_BASE_URL` (defaults to `http://localhost:8000`) with the
   real query.
 
+## Conversation history & respecting length instructions
+
+- **"Write 2 lines" being ignored**: the Synthesis Agent used to always force a fixed 5-section
+  report template, even if you explicitly asked for something short. Its prompt
+  (`app/agents/synthesis_agent.py`) now checks for explicit length/format instructions in the
+  question first (e.g. "in 2 lines", "one sentence", "be brief") and follows those instead of the
+  default template when present.
+- **Multi-turn context**: `POST /research` now accepts an optional `history` field — a list of
+  `{query, answer}` pairs from earlier turns in the conversation. The frontend
+  (`frontend/app.js`) keeps this automatically: each turn's question/answer is appended to
+  `conversationHistory` and sent with the next request; "New conversation" (the back arrow)
+  clears it.
+  - Only the **Manager** and **Synthesis** agents see the history (`app/history.py`,
+    capped at the last 5 turns to bound token growth) — the Manager resolves references like
+    "compare that with X" into self-contained sub-questions before handing them to
+    Search/Paper/Benchmark, and Synthesis keeps the final answer consistent with prior turns.
+    The specialist agents themselves stay stateless and don't see raw history, keeping their
+    prompts small.
+
 ## Status
 
 Backend, orchestration, and a demo-mode frontend are wired up and tested, now on Gemini with the

@@ -1,17 +1,24 @@
 import logging
 
+from app.history import format_history
 from app.llm import LLMCallError, call_llm, get_llm
 from app.schemas import ResearchState
 
 logger = logging.getLogger(__name__)
 
 MANAGER_SYSTEM_PROMPT = """You are the Research Manager in a multi-agent research pipeline.
-Given a user's research question, break it into three focused sub-questions, one for each \
+Given a user's research question (and, if provided, the prior turns of this conversation), \
+break the NEW question into three focused, self-contained sub-questions, one for each \
 specialist agent that will investigate in parallel:
 
 - SEARCH: a question for a Search Agent gathering general web/background context and current events
 - PAPER: a question for a Paper Agent focused on academic literature, methods, and findings
 - BENCHMARK: a question for a Benchmark Agent focused on quantitative comparisons and leaderboard-style results
+
+The specialist agents will NOT see the conversation history themselves — only your sub-questions.
+So if the new question uses a reference that depends on prior turns (e.g. "compare that with X",
+"what about the second one", "and for images?"), resolve the reference yourself using the
+conversation history and write self-contained sub-questions that make sense on their own.
 
 Respond with EXACTLY three lines, no extra commentary, in this format:
 SEARCH: <query>
@@ -22,6 +29,7 @@ BENCHMARK: <query>
 
 def run_manager(state: ResearchState) -> dict:
     query = state["query"]
+    history_text = format_history(state.get("history"))
 
     try:
         llm = get_llm()
@@ -29,7 +37,7 @@ def run_manager(state: ResearchState) -> dict:
             llm,
             [
                 ("system", MANAGER_SYSTEM_PROMPT),
-                ("human", query),
+                ("human", f"Conversation so far:\n{history_text}\n\nNew question: {query}"),
             ],
         )
     except LLMCallError as exc:

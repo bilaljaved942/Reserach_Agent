@@ -32,8 +32,9 @@ async def research(
 
     # Agents degrade gracefully on LLM failure rather than raising (see app/llm.py), so this
     # can still fail if something outside that path breaks (e.g. a bug, not an LLM outage).
+    history = [turn.model_dump() for turn in request.history]
     try:
-        result = await RESEARCH_GRAPH.ainvoke({"query": request.query})
+        result = await RESEARCH_GRAPH.ainvoke({"query": request.query, "history": history})
     except Exception as exc:  # pragma: no cover - unexpected/non-LLM failure
         raise HTTPException(status_code=502, detail=f"Research pipeline failed: {exc}") from exc
 
